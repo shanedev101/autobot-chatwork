@@ -82,7 +82,7 @@ routes.post('/', async (req, res) => {
             // presence_penalty: 0.5,
             model: 'gpt-3.5-turbo',
             messages: [{ role: 'user', content: question }],
-            temperature: 0.5,
+            temperature: 0.6,
             max_tokens: process.env.GPT_MAX_TOKEN || 100,
           },
           {
