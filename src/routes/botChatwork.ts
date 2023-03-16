@@ -67,6 +67,8 @@ routes.post('/', async (req, res) => {
           headers: {
             'X-ChatWorkToken': accessToken,
             'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'ChatWork-Webhook/1.0.0',
+            'x-chatworkwebhooksignature': process.env.SIGNATURE,
           },
         });
         // Make a call to the Chatwork API to send the message
