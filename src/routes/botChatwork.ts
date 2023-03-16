@@ -52,16 +52,49 @@ routes.post('/', async (req, res) => {
     }
 
     console.log(req.body);
-
     let roomId = '',
       message = '',
       fromAccountId = '';
+
     if (req.body) {
       roomId = req.body.webhook_event.room_id;
       message = req.body.webhook_event.body;
       fromAccountId = req.body.webhook_event.from_account_id;
-      console.log(roomId, message, fromAccountId);
+
       if (roomId && message && fromAccountId) {
+        // Handle chatgpt
+        let question = '';
+        const splitMsg = message.split('\n');
+        if (splitMsg.length > 1) {
+          question = splitMsg.slice(1).join('\n');
+        } else {
+          question = splitMsg[0];
+        }
+        console.log('Question:', question);
+        const responseGPT = await axios.post(
+          'https://api.openai.com/v1/chat/completions',
+          {
+            // prompt: question,
+            // temperature: 0.5,
+            // max_tokens: process.env.GPT_MAX_TOKEN || 100,
+            // top_p: 1,
+            // frequency_penalty: 1,
+            // presence_penalty: 0.5,
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: question }],
+            temperature: 0.5,
+            max_tokens: process.env.GPT_MAX_TOKEN || 100,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${process.env.GPT_API_KEY}`,
+            },
+          }
+        );
+        const answer = responseGPT.data.choices[0].message.content;
+        console.log('Answer:', answer);
+        // Handle send chatwork
         // Set up the Axios instance with the API endpoint and access token in the headers
         const chatworkApi = axios.create({
           baseURL: baseUrl,
@@ -75,7 +108,7 @@ routes.post('/', async (req, res) => {
         // Make a call to the Chatwork API to send the message
         await chatworkApi
           .post(`/rooms/${roomId}/messages`, {
-            body: `[To:${fromAccountId}]` + message,
+            body: `[To:${fromAccountId}]${answer}`,
           })
           .then((response) => {
             return res.status(200).json({
@@ -90,6 +123,10 @@ routes.post('/', async (req, res) => {
               error: error,
             });
           });
+      } else {
+        return res.status(400).json({
+          msg: 'Missing roomId && message && fromAccountId. Skip send.',
+        });
       }
     } else {
       return res.status(400).json({ msg: 'Missing data. Skip send.' });
