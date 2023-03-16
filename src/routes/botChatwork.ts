@@ -57,9 +57,10 @@ routes.post('/', async (req, res) => {
       message = '',
       fromAccountId = '';
     if (req.body) {
-      roomId = req.body.room_id;
+      roomId = req.body.webhook_event.room_id;
       message = req.body.webhook_event.body;
       fromAccountId = req.body.webhook_event.from_account_id;
+      console.log(roomId, message, fromAccountId);
       if (roomId && message && fromAccountId) {
         // Set up the Axios instance with the API endpoint and access token in the headers
         const chatworkApi = axios.create({
