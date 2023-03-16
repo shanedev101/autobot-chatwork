@@ -51,6 +51,8 @@ routes.post('/', async (req, res) => {
       return res.status(500).json({ msg: 'Missing chatwork token' });
     }
 
+    console.log(req.body);
+
     let roomId = '',
       message = '',
       fromAccountId = '';
