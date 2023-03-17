@@ -71,31 +71,36 @@ routes.post('/', async (req, res) => {
           question = splitMsg[0];
         }
         console.log('Question:', question);
-        await axios
-          .post(
-            'https://api.openai.com/v1/chat/completions',
+
+        // Handle GPT
+        const data = JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
             {
-              // prompt: question,
-              // temperature: 0.5,
-              // max_tokens: process.env.GPT_MAX_TOKEN || 100,
-              // top_p: 1,
-              // frequency_penalty: 1,
-              // presence_penalty: 0.5,
-              model: 'gpt-3.5-turbo',
-              messages: [{ role: 'user', content: question }],
-              temperature: 0.5,
-              max_tokens: process.env.GPT_MAX_TOKEN || 100,
+              role: 'user',
+              content: question,
             },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${process.env.GPT_API_KEY}`,
-              },
-            }
-          )
-          .then(async (responseGPT) => {
-            const answer = responseGPT.data.choices[0].message.content;
-            console.log('Answer:', answer);
+          ],
+        });
+
+        var config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: 'https://api.openai.com/v1/chat/completions',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.GPT_API_KEY || ''}`,
+          },
+          data: data,
+        };
+
+        axios(config)
+          .then(function (response) {
+            console.log(JSON.stringify(response.data));
+            const answer = response.data.choices[0].message.content.replace(
+              /^\n/,
+              ''
+            );
             // Handle send chatwork
             // Set up the Axios instance with the API endpoint and access token in the headers
             const chatworkApi = axios.create({
@@ -108,7 +113,7 @@ routes.post('/', async (req, res) => {
               },
             });
             // Make a call to the Chatwork API to send the message
-            await chatworkApi
+            chatworkApi
               .post(`/rooms/${roomId}/messages`, {
                 body: `[To:${fromAccountId}]${answer}`,
               })
@@ -118,30 +123,20 @@ routes.post('/', async (req, res) => {
                   data: response.data,
                 });
               })
-              .catch((error) => {
-                console.log('ERROR CHATWORK', error)
-                return res.status(500).json({
-                  msg: 'ERROR CHATWORK',
-                  data: null,
-                  error: error,
-                });
+              .catch(function (error) {
+                return res.json({ msg: 'ERROR CHATWORK', error: error });
               });
           })
-          .catch((error) => {
-            console.log('ERROR GPT', error)
-            return res.status(500).json({
-              msg: 'ERROR GPT',
-              data: null,
-              error: error,
-            });
+          .catch(function (error) {
+            return res.json({ msg: 'ERROR GPT', error: error });
           });
       } else {
-        return res.status(400).json({
+        return res.json({
           msg: 'Missing roomId && message && fromAccountId. Skip send.',
         });
       }
     } else {
-      return res.status(400).json({ msg: 'Missing data. Skip send.' });
+      return res.json({ msg: 'Missing data. Skip send.' });
     }
   } catch (error) {
     return res
