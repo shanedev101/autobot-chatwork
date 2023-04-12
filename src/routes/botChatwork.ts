@@ -64,72 +64,75 @@ routes.post('/', async (req, res) => {
       if (roomId && message && fromAccountId) {
         // Handle chatgpt
         let question = '';
-        const splitMsg = message.split('\n');
-        if (splitMsg.length > 1) {
-          question = splitMsg.slice(1).join('\n');
-        } else {
-          question = splitMsg[0];
-        }
-        console.log('Question:', question);
+        console.log('[toall]: ', message.indexOf('[toall]'));
+        if (message.indexOf('[toall]') === -1) {
+          const splitMsg = message.split('\n');
+          if (splitMsg.length > 1) {
+            question = splitMsg.slice(1).join('\n');
+          } else {
+            question = splitMsg[0];
+          }
+          console.log('Question:', question);
 
-        // Handle GPT
-        const data = JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'user',
-              content: question,
-            },
-          ],
-        });
-
-        var config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: 'https://api.openai.com/v1/chat/completions',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.GPT_API_KEY || ''}`,
-          },
-          data: data,
-        };
-
-        axios(config)
-          .then(function (response) {
-            console.log(JSON.stringify(response.data));
-            const answer = response.data.choices[0].message.content.replace(
-              /^\n/,
-              ''
-            );
-            // Handle send chatwork
-            // Set up the Axios instance with the API endpoint and access token in the headers
-            const chatworkApi = axios.create({
-              baseURL: baseUrl,
-              headers: {
-                'X-ChatWorkToken': accessToken,
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'ChatWork-Webhook/1.0.0',
-                'x-chatworkwebhooksignature': process.env.SIGNATURE,
+          // Handle GPT
+          const data = JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [
+              {
+                role: 'user',
+                content: question,
               },
-            });
-            // Make a call to the Chatwork API to send the message
-            chatworkApi
-              .post(`/rooms/${roomId}/messages`, {
-                body: `[To:${fromAccountId}]${answer}`,
-              })
-              .then((response) => {
-                return res.status(200).json({
-                  msg: 'OK',
-                  data: response.data,
-                });
-              })
-              .catch(function (error) {
-                return res.json({ msg: 'ERROR CHATWORK', error: error });
-              });
-          })
-          .catch(function (error) {
-            return res.json({ msg: 'ERROR GPT', error: error });
+            ],
           });
+
+          var config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://api.openai.com/v1/chat/completions',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${process.env.GPT_API_KEY || ''}`,
+            },
+            data: data,
+          };
+
+          axios(config)
+            .then(function (response) {
+              console.log(JSON.stringify(response.data));
+              const answer = response.data.choices[0].message.content.replace(
+                /^\n/,
+                ''
+              );
+              // Handle send chatwork
+              // Set up the Axios instance with the API endpoint and access token in the headers
+              const chatworkApi = axios.create({
+                baseURL: baseUrl,
+                headers: {
+                  'X-ChatWorkToken': accessToken,
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'User-Agent': 'ChatWork-Webhook/1.0.0',
+                  'x-chatworkwebhooksignature': process.env.SIGNATURE,
+                },
+              });
+              // Make a call to the Chatwork API to send the message
+              chatworkApi
+                .post(`/rooms/${roomId}/messages`, {
+                  body: `[To:${fromAccountId}]${answer}`,
+                })
+                .then((response) => {
+                  return res.status(200).json({
+                    msg: 'OK',
+                    data: response.data,
+                  });
+                })
+                .catch(function (error) {
+                  return res.json({ msg: 'ERROR CHATWORK', error: error });
+                });
+            })
+            .catch(function (error) {
+              return res.json({ msg: 'ERROR GPT', error: error });
+            });
+        }
       } else {
         return res.json({
           msg: 'Missing roomId && message && fromAccountId. Skip send.',
