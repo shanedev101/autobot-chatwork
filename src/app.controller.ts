@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 
-@Controller('chatwork')
+@Controller('')
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
@@ -10,7 +10,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Post()
+  @Post('/chatwork')
   async chat(@Body() body: any, @Res() res: any) {
     return this.appService.chat(body, res);
   }
